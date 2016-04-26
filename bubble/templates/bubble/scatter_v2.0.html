@@ -1,0 +1,246 @@
+<!--
+Scatter.html
+Version 2.0
+April 12, 2016
+
+This version has the 4 toggles, 2 for Group 1 and 2, and 2 for Male/Female.
+The toggle switches sucessfully allow the user to turn on/off the desired
+groups to see only which they choose to. Going to add more features such
+as group splitting in the next version and a legend, along with more options.
+
+Currently the groups is hardcoded, which needs to be changed to dynamic which
+will happen in later updated versions of the software.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<head>
+
+<style>
+body {
+  font: 10px sans-serif;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.point {
+  fill: steelblue;
+  stroke: #000;
+}
+#area1 {
+  height: 400px;
+  margin: 12px 5px;
+  float: left;
+  width: 460px;
+  padding: 50px;
+ }
+#area2 {
+  height: 300px;
+  margin: 12px 50px;
+  float: right;
+  width: 260px;
+  padding: 10px;
+ }
+
+
+</style>
+
+{% load staticfiles %}
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+
+</head>
+
+<body>
+
+{% load staticfiles %}
+<script src="{% static 'bubble/d3.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery-1.6.2.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.js' %}"></script>
+<script src="{% static 'bubble/js/bootstrap-switch.js' %}"></script>
+<script src="{% static 'bubble/js/bubble_functions.js' %}"></script>
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+<link href="{% static 'bubble/css/bootstrap-switch.css' %}" rel="stylesheet"/>
+
+
+<div id="area1">
+
+</div>
+
+<script>
+
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.linear().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+
+var svg = d3.select("body").select("#area1").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("{% static 'bubble/data_3.csv' %}", function(error, data) {
+  if (error) throw error;
+
+  // Coerce the strings to numbers.
+  data.forEach(function(d) {
+    d.x = +d.x;
+    d.y = +d.y;
+  });
+
+  // Compute the scales’ domains.
+  x.domain(d3.extent(data, function(d) { return d.x; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.y; })).nice();
+
+  // Add the x-axis.
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.svg.axis().scale(x).orient("bottom"));
+
+  // Add the y-axis.
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left"));
+
+  svg.selectAll("svg")
+     .data(data).enter()
+     .append("circle")
+     .attr("r", 10)
+     //.attr("fill", "blue")
+     .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; })
+     .attr("id", function(d,i) { return ("name"+i); })
+     .attr("grp_name", function(d) { return d.grp;})
+     .attr("gene", function(d) { return d.gen;});
+
+
+  d3.selectAll("[gene=m]").attr("fill","blue").attr("opacity","1");
+  d3.selectAll("[gene=f]").attr("fill","pink").attr("opacity","1");
+  d3.selectAll("[grp_name=a]").attr("stroke", "green").attr("stroke-width", function(d) { return 4; });
+  d3.selectAll("[grp_name=b]").attr("stroke", "red").attr("stroke-width", function(d) { return 4; });
+
+
+
+
+
+  //**********************************************************************************************
+
+//*********************************************************************************
+
+  var group_name = [], group_gene = [], truth_name = [], truth_gene = [];
+  data.forEach(function(d) {
+    group_name.push(d.grp);
+    truth_name.push('T');
+
+    group_gene.push(d.gen);
+    truth_gene.push('T');
+
+
+  });
+  //console.log(group_name);
+  //console.log(group_gene);
+
+
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  //if ($('#Checkbox1').bootstrapSwitch('state')) { d3.selectAll("[grp_name=a]").attr("opacity","1"); }
+  //else { d3.selectAll("[grp_name=a]").attr("opacity",".1"); }
+  //console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  var t = '';
+  if ($('#Checkbox1').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_name = compare( group_name, truth_name, 'a', t );
+  update_view(truth_name, truth_gene);
+
+
+});
+
+$('#Checkbox2').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#Checkbox2').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_name = compare( group_name, truth_name, 'b', t );
+  update_view(truth_name, truth_gene);
+
+});
+
+$('#FemaleBox').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#FemaleBox').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_gene = compare( group_gene, truth_gene, 'f', t );
+  update_view(truth_name, truth_gene);
+
+});
+
+$('#MaleBox').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#MaleBox').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_gene = compare( group_gene, truth_gene, 'm', t );
+  update_view(truth_name, truth_gene);
+
+});
+
+
+}); // End of D3 reading CSV data
+</script>
+
+
+
+
+<div class="container" id="area2">
+  <form role="form">
+    <div class="checkbox">
+      <label><input type="checkbox" id="Checkbox1" checked="checked" data-size="mini"> Group 1</label><br>
+      <label><input type="checkbox" id="Checkbox2" checked="checked" data-size="mini"> Group 2</label><br>
+    </div>
+    <div class="checkbox">
+      <label><input type="checkbox" id="MaleBox" checked data-size="mini"> Male</label><br>
+      <label><input type="checkbox" id="FemaleBox" checked data-size="mini"> Female</label>
+
+    </div>
+  </form>
+</div>
+
+<script>
+$("[name='my-checkbox']").bootstrapSwitch();
+$("[id='FemaleBox']").bootstrapSwitch();
+$("[id='MaleBox']").bootstrapSwitch();
+$("[id='Checkbox1']").bootstrapSwitch();
+$("[id='Checkbox2']").bootstrapSwitch();
+</script>
+
+
+</body>
+
+</html>
+
+
+<!--
+
+CODE EXAMPLE of checking toggle switch TRUE/FALSE state and doing something
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  if ($('#Checkbox1').bootstrapSwitch('state'))
+          console.log("to me its: TRUE");
+  if ( $('#Checkbox1').bootstrapSwitch('state') === false )
+          console.log("but to me its: FALSE");
+});
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+CODE EXAMPLE of outputting the true/false state of a toggle switch to the console.log()
+
+console.log($('#Checkbox1').bootstrapSwitch('state')); // Displays the state of the toggle switch, either: true || false
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

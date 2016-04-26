@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<head>
+
+<style>
+body {
+  font: 10px sans-serif;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.point {
+  fill: steelblue;
+  stroke: #000;
+}
+#area1 {
+  height: 400px;
+  margin: 12px 5px;
+  float: left;
+  width: 460px;
+  padding: 50px;
+  /*background-color: red;*/
+ }
+#area2 {
+  height: 300px;
+  margin: 12px 50px;
+  float: right;
+  width: 260px;
+  padding: 10px;
+  /*background-color: #1b6d85;*/
+ }
+#area3 {
+  height: 400px;
+  margin: 12px 5px;
+  float: left;
+  width: 460px;
+  padding: 50px;
+  /*background-color: #0000ee;*/
+ }
+
+</style>
+
+{% load staticfiles %}
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+
+</head>
+
+<body>
+
+{% load staticfiles %}
+<script src="{% static 'bubble/d3.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery-1.6.2.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.js' %}"></script>
+<script src="{% static 'bubble/js/bootstrap-switch.js' %}"></script>
+<script src="{% static 'bubble/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'bubble/js/bubble_functions.js' %}"></script>
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+<link href="{% static 'bubble/css/bootstrap-switch.css' %}" rel="stylesheet"/>
+
+
+<div id="area1"></div>
+
+
+
+<script>
+
+
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 1060 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.linear().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+
+var svg = d3.select("body").select("#area1").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+// This begins the D3.CSV read file function
+
+d3.csv("{% static 'bubble/data_3.csv' %}", function(error, data) {
+  if (error) throw error;
+
+  // Coerce the strings to numbers.
+  data.forEach(function(d) {
+    d.x = +d.x;
+    d.y = +d.y;
+  });
+
+  // Compute the scales’ domains.
+  x.domain(d3.extent(data, function(d) { return d.x; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.y; })).nice();
+
+  // Add the x-axis.
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.svg.axis().scale(x).orient("bottom"));
+
+  // Add the y-axis.
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left"));
+
+  svg.selectAll("svg")
+     .data(data).enter()
+     .append("circle")
+     .attr("r", 10)
+     //.attr("fill", "blue")
+     .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; })
+     .attr("id", function(d,i) { return ("name"+i); })
+     .attr("grp_name", function(d) { return d.grp;})
+     .attr("gene", function(d) { return d.gen;});
+
+
+  d3.selectAll("[gene=m]").attr("fill","blue").attr("opacity","1");
+  d3.selectAll("[gene=f]").attr("fill","pink").attr("opacity","1");
+  d3.selectAll("[grp_name=a]").attr("stroke", "green").attr("stroke-width", function(d) { return 4; });
+  d3.selectAll("[grp_name=b]").attr("stroke", "red").attr("stroke-width", function(d) { return 4; });
+
+
+  var group_name = [], group_gene = [], truth_name = [], truth_gene = [];
+  data.forEach(function(d) {
+    group_name.push(d.grp);
+    truth_name.push('T');
+    group_gene.push(d.gen);
+    truth_gene.push('T');
+  });
+  //console.log(group_name);
+  //console.log(group_gene);
+
+
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  //if ($('#Checkbox1').bootstrapSwitch('state')) { d3.selectAll("[grp_name=a]").attr("opacity","1"); }
+  //else { d3.selectAll("[grp_name=a]").attr("opacity",".1"); }
+  //console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  var t = '';
+  if ($('#Checkbox1').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_name = compare( group_name, truth_name, 'a', t );
+  update_view_array(truth_name, truth_gene);
+
+
+});
+
+$('#Checkbox2').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#Checkbox2').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_name = compare( group_name, truth_name, 'b', t );
+  update_view_array(truth_name, truth_gene);
+
+});
+
+$('#FemaleBox').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#FemaleBox').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_gene = compare( group_gene, truth_gene, 'f', t );
+  update_view_array(truth_name, truth_gene);
+
+});
+
+$('#MaleBox').on('switchChange.bootstrapSwitch', function () {
+  var t = '';
+  if ($('#MaleBox').bootstrapSwitch('state')) { t = 'T'}
+  else { t = 'F' }
+  truth_gene = compare( group_gene, truth_gene, 'm', t );
+  update_view_array(truth_name, truth_gene);
+
+});
+
+
+
+
+
+}); // End of D3 reading CSV data
+
+
+
+
+
+function draw_two(x_axis_x, x_axis_y, y_axis_x, y_axis_y, extra_x, extra_y){
+
+    var x = d3.scale.linear().range([0, 400]);
+    var y = d3.scale.linear().range([200, 0]);
+
+    var svg = d3.select("body").select("#area1").select("svg");
+
+d3.csv("{% static 'bubble/data_3.csv' %}", function(error, data) {
+  if (error) throw error;
+
+  // Coerce the strings to numbers.
+  data.forEach(function(d) {
+    d.x = +d.x;
+    d.y = +d.y; });
+
+  var time = 1250;
+
+  // Compute the scales’ domains.
+  x.domain(d3.extent(data, function(d) { return d.x; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.y; })).nice();
+
+  // Add the x-axis.
+  svg.append("g").attr("class", "x axis").transition().duration(time).attr("transform", "translate(" + x_axis_x + "," + x_axis_y + ")").call(d3.svg.axis().scale(x).orient("bottom"));
+  // Add the y-axis.
+  svg.append("g").attr("class", "y axis").transition().duration(time).attr("transform", "translate(" + y_axis_x + "," + y_axis_y + ")").call(d3.svg.axis().scale(y).orient("left"));
+
+
+  svg.selectAll("svg")
+     .data(data).enter()
+     .append("circle").transition().duration(time)
+     .attr("r", 10)
+     .attr("fill", "orange")
+     .attr("transform", function(d) { return "translate(" + x(d.x+extra_x) + "," + y(d.y+extra_y) + ")"; })
+     .attr("id", function(d,i) { return ("name"+i); })
+     .attr("grp_name", function(d) { return d.grp;})
+     .attr("gene", function(d) { return d.gen;});
+
+
+    //d3.selectAll("[gene=m]").attr("fill","blue").attr("opacity","1");
+    //d3.selectAll("[gene=f]").attr("fill","pink").attr("opacity","1");
+    //d3.selectAll("[grp_name=a]").attr("stroke", "green").attr("stroke-width", function(d) { return 4; });
+    //d3.selectAll("[grp_name=b]").attr("stroke", "red").attr("stroke-width", function(d) { return 4; });
+
+    }) // END OF D3.CSV File Read
+
+}// End of Function
+
+
+
+
+
+
+// This is to test a function calling a function that draws one graph
+function draw_test(){
+  var numDataPoints = parseInt(document.getElementById('num_of_graphs').value, 10);
+  if (numDataPoints <= 0 || numDataPoints > 11){
+    console.log("Error! The number of graphs, " + numDataPoints + " ,is invalid")
+  }
+  else {
+
+
+    numDataPoints = 11; // For testing purposes so that it goes directly to a certain case
+
+
+    split_1();
+    //draw_graph( 40 , 220 , 40 , 20 , 10, -20, 400, 200); // Original line
+
+    switch(numDataPoints) {
+    case 1:
+      // Top two full screen mode, stretching the size of four
+                // x-x, x-y, y-x, y-y, p-x, p-y,   x,   y, sz
+        draw_graph(40, 470, 40, 20, 4.5, -9, 900, 450, 10);
+        break;
+    case 2:
+      // Top two full screen mode, stretching the size of four
+                // x-x, x-y, y-x, y-y, p-x, p-y,   x,   y, sz
+        draw_graph(40, 420, 40, 20, 10, -10, 400, 400, 8);
+        draw_graph(500, 420, 500, 20, 125, -10, 400, 400, 8);
+        break;
+    case 3:
+    // This draws 3 graphs on the screen
+      //Top three
+                // x-x, x-y, y-x, y-y, p-x, p-y,   x,   y, sz
+        draw_graph( 40, 220,  40, 20,  16, -20, 250, 200, 7);
+        draw_graph(350, 220, 350, 20, 140, -20, 250, 200, 7);
+        draw_graph(660, 220, 660, 20, 264, -20, 250, 200, 7);
+        break;
+    case 4: // The first example of 4
+    // This draws 4 graphs on the screen using 2 rows
+      //Top two
+                // x-x, x-y, y-x, y-y, p-x, p-y,   x,   y, sz
+        draw_graph( 40, 220,  40, 20,  10, -20, 400, 200, 8);
+        draw_graph(500, 220, 500, 20, 125, -20, 400, 200, 8);
+      // Bottom Two
+        draw_graph( 40, 460,  40, 260,  10, -260, 400, 200, 8);
+        draw_graph(500, 460, 500, 260, 125, -260, 400, 200, 8);
+        break;
+        case 11: // The second example of 4
+    // This draws 4 graphs in a row on the screen
+      //Top five
+                // x-x, x-y, y-x, y-y, p-x, p-y,   x,   y, sz
+        draw_graph( 40, 220,  40,  20,  20, -20, 200, 200,  5);
+        draw_graph(295, 220, 295,  20, 147, -20, 200, 200,  5);
+        draw_graph(550, 220, 550,  20, 275, -20, 200, 200,  5);
+        draw_graph(810, 220, 810,  20, 405, -20, 200, 200,  5);
+        break;
+    case 5:
+    // This draws 5 graphs on the screen
+      //Top five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+        break;
+    case 6:
+    // This draws 6 graphs on the screen
+      //Top Five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+      // Bottom One
+        draw_graph( 40, 460, 40, 260,  27, -260, 150, 200, 5);
+        break;
+    case 7:
+    // This draws 6 graphs on the screen
+      //Top Five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+      // Bottom Two
+        draw_graph( 40, 460, 40, 260,  27, -260, 150, 200, 5);
+        draw_graph(240, 460,240, 260, 160, -260, 150, 200, 5);
+        break;
+    case 8:
+    // This draws 8 graphs on the screen
+      //Top Five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+      // Bottom Three
+        draw_graph( 40, 460, 40, 260,  27, -260, 150, 200, 5);
+        draw_graph(240, 460,240, 260, 160, -260, 150, 200, 5);
+        draw_graph(440, 460,440, 260, 293, -260, 150, 200, 5);
+        break;
+    case 9:
+    // This draws 9 graphs on the screen
+      //Top Five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+      // Bottom Four
+        draw_graph( 40, 460, 40, 260,  27, -260, 150, 200, 5);
+        draw_graph(240, 460,240, 260, 160, -260, 150, 200, 5);
+        draw_graph(440, 460,440, 260, 293, -260, 150, 200, 5);
+        draw_graph(640, 460,640, 260, 426, -260, 150, 200, 5);
+        break;
+    case 10:
+    // This draws 10 graphs on the screen
+      //Top Five
+        draw_graph( 40, 220,  40, 20,  27, -20, 150, 200, 5);
+        draw_graph(240, 220, 240, 20, 160, -20, 150, 200, 5);
+        draw_graph(440, 220, 440, 20, 293, -20, 150, 200, 5);
+        draw_graph(640, 220, 640, 20, 426, -20, 150, 200, 5);
+        draw_graph(840, 220, 840, 20, 559, -20, 150, 200, 5);
+      // Bottom Five
+        draw_graph( 40, 460, 40, 260,  27, -260, 150, 200, 5);
+        draw_graph(240, 460,240, 260, 160, -260, 150, 200, 5);
+        draw_graph(440, 460,440, 260, 293, -260, 150, 200, 5);
+        draw_graph(640, 460,640, 260, 426, -260, 150, 200, 5);
+        draw_graph(840, 460,840, 260, 559, -260, 150, 200, 5);
+        break;
+    default:
+        // pass
+        break;
+  }
+
+  }// End else section
+
+}// END of draw_test() function
+
+// Testing out making a function that will draw one graph based on passed information
+
+function draw_graph(x_axis_x, x_axis_y, y_axis_x, y_axis_y, plots_x, plots_y, x_range, y_range, p_raduis){
+// The larger plots_x is, the more the plots move to the right of screen
+// The more negative plots_y is the more the plots moves down the screen
+  var time = 1250;
+  var x = d3.scale.linear().range([0, x_range]), y = d3.scale.linear().range([y_range, 0]);
+  var svg = d3.select("body").select("#area1").select("svg");
+
+d3.csv("{% static 'bubble/data_3.csv' %}", function(error, data) {
+  if (error) throw error;
+
+  // Coerce the strings to numbers.
+  data.forEach(function(d) { d.x = +d.x; d.y = +d.y;  });
+
+  // Compute the scales’ domains.
+  x.domain(d3.extent(data, function(d) { return d.x; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.y; })).nice();
+
+  // Add the x-axis and then y-axis to the svg
+  svg.append("g").attr("class", "x axis").transition().duration(time).attr("transform", "translate(" + x_axis_x + "," + x_axis_y + ")").call(d3.svg.axis().scale(x).orient("bottom"));
+  svg.append("g").attr("class", "y axis").transition().duration(time).attr("transform", "translate(" + y_axis_x + "," + y_axis_y + ")").call(d3.svg.axis().scale(y).orient("left"));
+
+  svg.selectAll("svg")
+     .data(data).enter()
+     .append("circle").transition().duration(time)
+     .attr("r", p_raduis)
+     .attr("fill", "orange")
+     .attr("transform", function(d) { return "translate(" + x(d.x+plots_x) + "," + y(d.y+plots_y) + ")"; })
+     .attr("id", function(d,i) { return ("name"+i); })
+     .attr("grp_name", function(d) { return d.grp;})
+     .attr("gene", function(d) { return d.gen;});
+    }) // END OF D3.CSV File Read
+
+}// End of draw_graph() Function - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+
+
+// This function calls the draw_two function twice to make two different charts
+
+function draw_many(){
+  split_1();
+  draw_two( 40 , 220 , 40 , 20 , 10, -20);
+  draw_two( 540 , 220 , 540 , 20 , 135, -20);
+}
+
+
+
+
+</script>
+
+
+
+
+<div class="container" id="area2">
+
+  <form role="form">
+    <div class="checkbox">
+      <label><input type="checkbox" id="Checkbox1" checked="checked" data-size="mini"> Group 1</label><br>
+      <label><input type="checkbox" id="Checkbox2" checked="checked" data-size="mini"> Group 2</label><br>
+    </div>
+    <div class="checkbox">
+      <label><input type="checkbox" id="MaleBox" checked data-size="mini"> Male</label><br>
+      <label><input type="checkbox" id="FemaleBox" checked data-size="mini"> Female</label>
+    </div>
+  </form>
+
+  <div class="dropdown">
+    <button class="btn btn-sm dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Group By...
+    <span class="caret"></span></button>
+    <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+      <li role="presentation"><a role="menuitem" tabindex="-1" onclick="split_1()" href="#">Group Name</a></li>
+      <li role="presentation"><a role="menuitem" tabindex="-1" onclick="split_2()" href="#">Gender</a></li>
+      <li role="presentation"><a role="menuitem" tabindex="-1" onclick="draw_many()" href="#">Size</a></li>
+      <li role="presentation"><a role="menuitem" tabindex="-1" onclick="draw_test()" href="#">Draw Test</a></li>
+      <li role="presentation" class="disabled"><a role="menuitem" tabindex="-1" href="#">Department</a></li>
+    </ul>
+  </div>
+  <div class="input-group">
+  <input id="num_of_graphs" type="text" class="form-control" aria-label="..." value="1">
+  <div class="input-group-btn">
+    <!-- Buttons -->
+  </div>
+  </div>
+
+</div>
+
+
+<script>
+$("[name='my-checkbox']").bootstrapSwitch();
+$("[id='FemaleBox']").bootstrapSwitch();
+$("[id='MaleBox']").bootstrapSwitch();
+$("[id='Checkbox1']").bootstrapSwitch();
+$("[id='Checkbox2']").bootstrapSwitch();
+
+
+
+  draw_test(); // FOR DEBUGGING, remove when finished. This calls the function automatically
+
+
+</script>
+
+
+<div id="area3"></div>
+
+</body>
+
+</html>
+
+
+<!--
+
+CODE EXAMPLE of checking toggle switch TRUE/FALSE state and doing something
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  if ($('#Checkbox1').bootstrapSwitch('state'))
+          console.log("to me its: TRUE");
+  if ( $('#Checkbox1').bootstrapSwitch('state') === false )
+          console.log("but to me its: FALSE");
+});
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+CODE EXAMPLE of outputting the true/false state of a toggle switch to the console.log()
+
+console.log($('#Checkbox1').bootstrapSwitch('state')); // Displays the state of the toggle switch, either: true || false
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+

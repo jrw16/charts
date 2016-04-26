@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="img/GE.png">
+    <title>F.A.C.T. Data Analysis</title>
+
+
+
+    {% load staticfiles %}
+    <!-- All the JS files -->
+    <script src="{% static 'bubble/d3.min.js' %}"></script>
+    <script src="{% static 'bubble/js/jquery-1.6.2.min.js' %}"></script>
+    <script src="{% static 'bubble/js/jquery.min.js' %}"></script>
+    <script src="{% static 'bubble/js/jquery.js' %}"></script>
+    <script src="{% static 'bubble/js/bootstrap-switch.js' %}"></script>
+    <script src="{% static 'bubble/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'bubble/js/bubble_functions.js' %}"></script>
+    <script src="{% static 'bubble/js/my_functions.js' %}"></script>
+    <script src="{% static 'bubble/js/d3.slider.js' %}"></script>
+    <script src="{% static 'bubble/js/data_script.js' %}"></script>
+
+    <!-- All the CSS files -->
+    <link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+    <link href="{% static 'bubble/css/bootstrap-switch.css' %}" rel="stylesheet"/>
+    <link href="{% static 'bubble/css/offcanvas.css' %}" rel="stylesheet"/>
+    <link href="{% static 'bubble/css/d3.slider.css' %}" rel="stylesheet"/>
+
+
+    <style>
+        /* tell the SVG path to be a thin blue line without any area fill */
+        path {
+            stroke: steelblue;
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .axis {
+            shape-rendering: crispEdges;
+        }
+
+        .x.axis line {
+            stroke: #D3D3D3;
+
+        }
+
+        .x.axis .minor {
+            stroke-opacity: .5;
+        }
+
+        .x.axis path {
+            display: none;
+        }
+
+        .y.axis line, .y.axis path {
+            fill: none;
+            stroke: #000;
+        }
+        svg {
+        //color: #9B001C;
+        //    background-color: #f3f7da;
+            border: 1px solid black;
+        }
+        #slider1 {
+            height: 12px;
+            width: 300px;
+            margin-left: 10px;
+            margin-right: 10px;
+            background-color: #3533e2;
+
+        }
+        #summary {
+            width:250px;
+            height: 280px;
+            float:left;
+            padding:5px;
+            border: solid 1px;
+            margin-left: 10px;
+            margin-top: 20px;
+
+        }
+    </style>
+
+
+</head>
+
+<body>
+<nav class="navbar navbar-fixed-top navbar-inverse">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#" onclick="window.location.href='index.html'">Back to Collection</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="#" onclick="window.location.href='fact_option_8.html'">Home</a></li>
+                <!--li><a href="#about" onclick="window.location.href='fact_option_4.html'">Test Page</a></li-->
+                <!--<li><a href="#contact">Contact</a></li>-->
+            </ul>
+        </div><!-- /.nav-collapse -->
+    </div><!-- /.container -->
+</nav><!-- /.navbar -->
+
+    <div>
+        Select a text file:
+        <form action="php/read.php" method="post">
+            <input style="float: left;" type="file" class="btn btn-primary" id="fileInput" name="fileName">
+            <input style="float: left;" type="submit" class="btn btn-info">
+        </form>
+    </div>
+
+<br><br>
+<!--div style="margin-left: 15px;" id="slider1"></div>
+<h2 style="margin-left: 10px; font-size: large;">Number of Graphs to Display: <span id="slider1text">1</span></h2-->
+<h2 style="margin-left: 10px; font-size: 20px;">Genes Selected:</h2>
+<p id="display_selected" style="margin-left: 20px">- </p>
+
+<div id="box" class="container" style="margin-left: 10px; margin-top: 20px; float: left; border: solid 1px;
+                                    height: 410px; width: 1000px; overflow-x: auto; overflow-y: auto; white-space: nowrap;">
+
+
+
+    <!--svg id="graph" style="margin-left: -20px; margin-top: -11px; height: 5000px; width: 10000px; ;"></svg-->
+
+
+</div>
+
+<script>
+    $(document).ready(function(){
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
+
+
+
+<script>
+
+
+    // Function for creating the main SVG area that will hold all the graphs
+    function addSvgToGraph(){
+        d3.select("#box").append("svg")
+                .style("margin-left", "-20px")
+                .style("margin-top", "-11px")
+                .style("height", "19700px")
+                .style("width","10000px")
+                .attr("id","graph");
+    }
+
+    addSvgToGraph();
+
+    //createRow(1);// addBreak(); createRow(4); addBreak(); createRow(4);// addBreak(); createRow(8); addBreak();
+    //createRow(8); addBreak(); createRow(8);// addBreak(); createRow(8); addBreak(); createRow(8); addBreak();
+    //createRow(8); addBreak(); createRow(8); addBreak(); createRow(8); addBreak(); createRow(8); addBreak();
+    //createRow(8); addBreak(); createRow(8); addBreak(); createRow(8); addBreak();
+
+    var mySquare;
+
+    var test_mean = [], test_hi = [], test_lo = [], test_result = [], ceiling = [], floor = [];
+
+
+    d3.csv("{% static 'bubble/clusterdata.simplify.csv' %}", function(csv) {
+
+    var normalized = [], _d_1 = [], _d_2 = [], _d_3 = [], _d_4 = [], _d_5 = [], _d_6 = [], _d_7 = [], _d_8 = [], _d_9 = [], _d_10 = [];
+    var sum = [0,0,0,0,0];
+    // Parsing out the data from the CSV file
+    //for (var i=0; i < csv.length; i++)  {
+
+    var _t = csv[0];
+    var cur_sym = _t.sym;
+    var ind = 0;
+
+    for (var j=0; j < 1500; j++) {
+
+        normalized = [], _d_1 = [], _d_2 = [], _d_3 = [], _d_4 = [], _d_5 = [], _d_6 = [], _d_7 = [], _d_8 = [], _d_9 = [], _d_10 = [], ceiling = [], floor = []
+        test_hi = [], test_lo = [], test_mean = [];
+        var y_max = -999999999999; var y_min = 999999999999;
+
+        for (var i = ind; i < (ind+1600); i++) {
+            var row = csv[i];
+            var newRow = {};
+            if (row.sym != cur_sym) { cur_sym = row.sym; console.log("End cur sym:",cur_sym," End row sym:", row.sym," End ind:",ind); ind++; break;}
+            newRow.hr2 = +row.hr2; newRow.hr4 = +row.hr4; newRow.hr6 = +row.hr6; newRow.hr8 = +row.hr8; newRow.hr12 = +row.hr12;
+            newRow.hr18 = +row.hr18; newRow.Day1 = +row.Day1; newRow.Day2 = +row.Day2; newRow.Day4 = +row.Day4; newRow.Day7 = +row.Day7;
+            newRow.sym = row.sym;
+
+            _d_1.push(+row.hr2);
+            _d_2.push(+row.hr4);
+            _d_3.push(+row.hr6);
+            _d_4.push(+row.hr8);
+            _d_5.push(+row.hr12);
+            _d_6.push(+row.hr18);
+            _d_7.push(+row.Day1);
+            _d_8.push(+row.Day2);
+            _d_9.push(+row.Day4);
+            _d_10.push(+row.Day7);
+
+
+            normalized.push(newRow);
+
+            var data = [];
+            //data.push(+row.hr2); data.push(+row.hr4); data.push(+row.hr6); data.push(+row.hr8); data.push(+row.hr12);
+            //sum[0] = sum[0] + (data[0]); sum[1] = sum[1] + (data[1]); sum[2] = sum[2] + (data[2]); sum[3] = sum[3] + (data[3]); sum[4] = sum[4] + (data[4]);
+
+            cur_sym = row.sym;
+            ind = i;
+        } // End of looping through data
+
+
+        ceiling.push(d3.max(_d_1));
+        ceiling.push(d3.max(_d_2));
+        ceiling.push(d3.max(_d_3));
+        ceiling.push(d3.max(_d_4));
+        ceiling.push(d3.max(_d_5));
+        ceiling.push(d3.max(_d_6));
+        ceiling.push(d3.max(_d_7));
+        ceiling.push(d3.max(_d_8));
+        ceiling.push(d3.max(_d_9));
+        ceiling.push(d3.max(_d_10));
+
+        floor.push(d3.min(_d_1));
+        floor.push(d3.min(_d_2));
+        floor.push(d3.min(_d_3));
+        floor.push(d3.min(_d_4));
+        floor.push(d3.min(_d_5));
+        floor.push(d3.min(_d_6));
+        floor.push(d3.min(_d_7));
+        floor.push(d3.min(_d_8));
+        floor.push(d3.min(_d_9));
+        floor.push(d3.min(_d_10));
+
+
+        var _t_d_1_mean = calcMean(_d_1, _d_1.length, 98);
+        var _t_d_2_mean = calcMean(_d_2, _d_2.length, 98);
+        var _t_d_3_mean = calcMean(_d_3, _d_3.length, 98);
+        var _t_d_4_mean = calcMean(_d_4, _d_4.length, 98);
+        var _t_d_5_mean = calcMean(_d_5, _d_5.length, 98);
+        var _t_d_6_mean = calcMean(_d_6, _d_6.length, 98);
+        var _t_d_7_mean = calcMean(_d_7, _d_7.length, 98);
+        var _t_d_8_mean = calcMean(_d_8, _d_8.length, 98);
+        var _t_d_9_mean = calcMean(_d_9, _d_9.length, 98);
+        var _t_d_10_mean = calcMean(_d_10, _d_10.length, 98);
+
+        /*
+        console.log("_t_d_1_mean = ",_t_d_1_mean);
+        console.log("_t_d_2_mean = ",_t_d_2_mean);
+        console.log("_t_d_3_mean = ",_t_d_3_mean);
+        console.log("_t_d_4_mean = ",_t_d_4_mean);
+        console.log("_t_d_5_mean = ",_t_d_5_mean);
+        console.log("_t_d_6_mean = ",_t_d_6_mean);
+        console.log("_t_d_7_mean = ",_t_d_7_mean);
+        console.log("_t_d_8_mean = ",_t_d_8_mean);
+        console.log("_t_d_9_mean = ",_t_d_9_mean);
+        console.log("_t_d_10_mean = ",_t_d_10_mean);
+        */
+
+        test_lo.push(_t_d_1_mean[0]);
+        test_lo.push(_t_d_2_mean[0]);
+        test_lo.push(_t_d_3_mean[0]);
+        test_lo.push(_t_d_4_mean[0]);
+        test_lo.push(_t_d_5_mean[0]);
+        test_lo.push(_t_d_6_mean[0]);
+        test_lo.push(_t_d_7_mean[0]);
+        test_lo.push(_t_d_8_mean[0]);
+        test_lo.push(_t_d_9_mean[0]);
+        test_lo.push(_t_d_10_mean[0]);
+
+        test_mean.push(_t_d_1_mean[1]);
+        test_mean.push(_t_d_2_mean[1]);
+        test_mean.push(_t_d_3_mean[1]);
+        test_mean.push(_t_d_4_mean[1]);
+        test_mean.push(_t_d_5_mean[1]);
+        test_mean.push(_t_d_6_mean[1]);
+        test_mean.push(_t_d_7_mean[1]);
+        test_mean.push(_t_d_8_mean[1]);
+        test_mean.push(_t_d_9_mean[1]);
+        test_mean.push(_t_d_10_mean[1]);
+
+        test_hi.push(_t_d_1_mean[2]);
+        test_hi.push(_t_d_2_mean[2]);
+        test_hi.push(_t_d_3_mean[2]);
+        test_hi.push(_t_d_4_mean[2]);
+        test_hi.push(_t_d_5_mean[2]);
+        test_hi.push(_t_d_6_mean[2]);
+        test_hi.push(_t_d_7_mean[2]);
+        test_hi.push(_t_d_8_mean[2]);
+        test_hi.push(_t_d_9_mean[2]);
+        test_hi.push(_t_d_10_mean[2]);
+
+
+
+
+        //console.log("Hi:",test_hi,"\nLo:",test_lo,"\nMe:",test_mean);
+
+        //_d_1 = [], _d_2 = [], _d_3 = [], _d_4 = [], _d_5 = [], _d_6 = [], _d_7 = [], _d_8 = [], _d_9 = [], _d_10 = [];
+
+
+        normalized.map(function(d,i){
+            var d_set = [];
+            d_set.push(d.hr2); d_set.push(d.hr4);
+            d_set.push(d.hr6); d_set.push(d.hr8);
+            d_set.push(d.hr12);d_set.push(d.hr18);
+            d_set.push(d.Day1);d_set.push(d.Day2);
+            d_set.push(d.Day4);d_set.push(d.Day7);
+            d_set.push(d.sym);
+            return d_set; }).forEach(function (d){
+                if (y_max < d3.max(d)) y_max = d3.max(d);
+                if (y_min > d3.min(d)) y_min = d3.min(d);
+            });
+
+
+
+        y_min = rounding(y_min);
+        y_max = rounding(y_max);
+
+        while (y_max-y_min < 6){
+            y_max += 1;
+            if (y_max-y_min < 6) y_min -= 1;
+        }
+
+        y_min = -2; y_max = 5;
+
+        create_G([30, 0, 30, 50], data, i, get_x1(), get_y1(), "area"+String(i), y_min, y_max );
+        update_x1(230);
+        if (j % 8 == 7){ addBreak(); }
+
+    } // End of for() loop
+
+    //create_G([30, 0, 30, 50], data, i, get_x1(), get_y1(), "area"+String(i) );
+    //update_x1(230);
+
+
+    //console.log( normalized.map(function(d,i){ return d.hr2; })  );
+    //console.log( normalized.map(function(d) {
+
+    /*console.log(normalized.map(function(d){
+        var d_set = [];
+        d_set.push(d.hr2);
+        d_set.push(d.hr4);
+        d_set.push(d.hr6);
+        d_set.push(d.hr8);
+        d_set.push(d.hr12);
+        d_set.push(d.hr18);
+        d_set.push(d.Day1);
+        d_set.push(d.Day2);
+        d_set.push(d.Day4);
+        d_set.push(d.Day7);
+        d_set.push(d.sym);
+
+        return d_set; }).forEach(function (d,i) {
+                return d;
+            }
+    ));*/
+
+
+
+
+    function create_G(m, data, groupNum, xx, yy, idname, y_min, y_max) {
+
+        test = normalized.map(function (d) {return d.sym} );
+        console.log("GROUP:",test[0]);
+
+        var add_area = true;
+        //var groupName = getGN(); // For testing purposes hardcoded group name
+        var groupName = test[0];
+        //var genename = getGeneName(); // For testing purposes hardcoded gene name
+        var genename = test[0];
+        var geneDisplay = ["-"];
+        d3.select("#display_selected").text(geneDisplay);
+
+        // define dimensions of graph
+        var w = 150; // Org 150
+        var h = 75;
+
+        // X scale will fit all values from data[] within pixels 0-w
+        //var x = d3.scale.linear().domain([0, data.length - 1]).range([d3.min(data), w]); // My original
+        var x = d3.scale.linear().domain([0, 9]).range([0, w]); // Hard coding the length to be 9
+        // Y scale will fit values from 0-10 within pixels h-0 (Note the inverted domain for the y-scale: bigger is up!)
+        var y = d3.scale.linear().domain([y_min, y_max]).range([h, 0]);                                // Hard codes the y values from -1 to 5
+
+
+        // create a line function that can convert data[] into x and y points
+        var line = d3.svg.line()
+                // assign the X function to plot our line as we wish
+                .x(function (d, i) { return x(i); })
+                .y(function (d) { return y(d); });
+
+        // Add an SVG element with the desired dimensions and margin.
+        var graph = d3.select("#graph")
+                .append("g")
+                .attr("transform", "translate(" + xx + "," + yy + ")")
+                .attr("id", idname);
+
+        graph.append("path")               // attach a path
+                .style("stroke", "black")  // colour the line
+                .style("fill", "none")     // remove any fill colour
+                .attr("d", "M" + (-47) + "," + (-30) + ", L" + (-47) + "," + (100) + ", L" + (183) + "," + (100) + ", L" + (183) + "," + (-30) + " Z");
+
+        // create x-axis, and add it to the bottom
+        //var xAxis = d3.svg.axis().scale(x).ticks(data.length).tickSize(-h).tickSubdivide(true); // My original, need to hardcode 10 ticks for now
+        var xAxis = d3.svg.axis().scale(x).ticks(10).tickSize(-h).tickSubdivide(true);
+        graph.append("g").attr("class", "x axis").attr("transform", "translate(" + 0 + "," + h + ")").call(xAxis);
+
+        // create left y-axis, and add it to the left
+        //var yAxisLeft = d3.svg.axis().scale(y).ticks(data.length).orient("left").tickSize(-w - m[1] - m[3]).tickSubdivide(true); // My original
+        var yAxisLeft = d3.svg.axis().scale(y).ticks(6).orient("left").tickSize(-w - m[1] - m[3]).tickSubdivide(true); // Hard coded the num of ticks to 6
+        graph.append("g").attr("class", "y axis").attr("transform", "translate(-25,0)").call(yAxisLeft);
+
+
+        // Code for the rectangle and all the onclick and mouse over event handling
+        graph.append("rect")
+                .attr("width", "232")
+                .attr("height", "130")
+                .attr("opacity", "0")
+                .attr("x", -48)
+                .attr("y", -30)
+                //.attr("transform", "translate(" + (-m[3]) + " ," + (-m[2]) + ")")
+                /*.on("mouseover", function () {
+             var colo = d3.select(this).attr("fill");
+             if (colo == "blue") { /* Do nothing  }
+             else {
+             if (view_mode){ /* Do nothing  }
+             else{ d3.select(this).attr("fill", "#FFFF00").style("opacity", ".4"); }
+             }
+             })*/
+            .on(
+                    "mouseout", function () {
+                var colo = d3.select(this).attr("fill");
+                if (colo == "blue") {
+                    // Do nothing
+                } else {
+                    d3.select(this).attr("fill", "white");
+                    d3.select(this).style("opacity", "0");
+                }
+            })
+            .on('click', function (d, value) {
+                var rect = d3.select(this);
+
+                if (view_mode) {
+                    /* Do Nothing */ }
+                else {
+
+                    d3.select("#summary").select("#sum_gene").text("Gene: " + genename);
+                    d3.select("#summary").select("#sum_group").text("Group: " + groupName);
+                    d3.select("#summary").select("#sum_graph_num").text("Graph Number: " + groupNum);
+
+                    var tt = "Gene: " + genename + " :# " + groupNum + "  -  ";
+
+
+                    if (rect.attr("fill") == "blue"){
+                        d3.select(this).attr("fill", "white");
+                        d3.select(this).style("opacity", "0");
+                        checkGeneSelection(getGenesSelected(), tt);
+
+                    }else if (checkMaxGenesSelected() >= 5 ){
+                        /* Do nothing */
+                    } else{
+                        rect.attr("fill", "blue").style("opacity", ".4");
+                        checkGeneSelection(getGenesSelected(), tt);
+                    }
+
+                    d3.select("#display_selected").text(getGenesSelected());
+                }
+
+            }
+            );
+
+
+/*
+// Draws all the lines from the data
+        normalized.map(function(d){
+            var d_set = [];
+            d_set.push(d.hr2);
+            d_set.push(d.hr4);
+            d_set.push(d.hr6);
+            d_set.push(d.hr8);
+            d_set.push(d.hr12);
+            d_set.push(d.hr18);
+            d_set.push(d.Day1);
+            d_set.push(d.Day2);
+            d_set.push(d.Day4);
+            d_set.push(d.Day7);
+
+            return d_set; }).forEach(function (d,i) {
+                    graph.append("path").attr("d",line(d)).style("stroke", "blue").style("stroke-width",2);
+                }
+        );
+*/
+
+    if (add_area){
+        // Creating the area for the upper and lower bound curves for the data
+
+        var high_to_low_area = d3.svg.area()
+                .x(function( d,i) { return x(i); })
+                .y0(function(d,i) { return y(ceiling[i]);} ) // top line
+                .y1(function(d) { return y(d); });
+        // Adding the path with the are to the SVG
+        graph.append("path")
+                .datum(floor) // Bottom line
+                .attr("class", "high_to_low_area")
+                .style("fill", "#778899") // #00BFFF
+                .attr("stroke", "#778899")// #00BFFF
+                .attr("d",high_to_low_area)
+                .style("pointer-events","all")
+                .append("title")
+                .text("Gene: "+genename + "\n" +
+                        "Group: "+groupName + " #" + groupNum + "\n" +
+                        "High: "+test_hi[groupNum] + "\n" +
+                        "Mean:"+test_mean[groupNum] + "\n" +
+                        "Low :"+test_lo[groupNum]);
+
+        var area = d3.svg.area()
+            .x(function( d,i) { return x(i); })
+            .y0(function(d,i) { return y(test_hi[i]);} ) // top line
+            .y1(function(d) { return y(d); });
+        // Adding the path with the are to the SVG
+        graph.append("path")
+            .datum(test_lo) // Bottom line
+            .attr("class", "area")
+            .style("fill", "#00FF00") // #00BFFF
+            .attr("stroke", "#00FF00")// #00BFFF
+            .attr("d",area)
+            .style("pointer-events","all")
+            .append("title")
+            .text("Gene: "+genename + "\n" +
+                "Group: "+groupName + " #" + groupNum + "\n" +
+                "High: "+test_hi[groupNum] + "\n" +
+                "Mean:"+test_mean[groupNum] + "\n" +
+                "Low :"+test_lo[groupNum]);
+            //console.log("Test_Hi: "+test_hi);
+            //console.log("Group Num: "+groupNum);
+            //console.log("test_hi[GroupNum]: "+test_hi[groupNum]); // Adding the mean line to the graph
+
+
+            graph.append("path").attr("d", line(test_mean)).style("stroke", "red").style("stroke-width",1);
+            //graph.append("path").attr("d", line(ceiling)).style("stroke", "#00008B");
+            //graph.append("path").attr("d", line(test_lo)).style("stroke", "#00BFFF");
+
+    }// End of add area boolean
+
+
+
+        normalized.forEach(function (d) {
+           // console.log(d);
+
+        } );
+
+
+
+
+        // Loop through each symbol / key
+        //dataNest.forEach(function(d) {
+
+        //    svg.append("path")
+        //            .attr("class", "line")
+        //            .attr("d", priceline(d.values));
+
+        //});
+
+
+
+        /*graph.append("path").attr("d", line( normalized.map(function(d,i){
+        var d_set = [];
+        d_set.push(d.hr2);
+        d_set.push(d.hr4);
+        d_set.push(d.hr6);
+        d_set.push(d.hr8);
+        d_set.push(d.hr12);
+        return d_set; }).forEach(function (d,i) {
+            console.log(d);
+    })
+    )).style("stroke", "blue").style("stroke-width",2);*/
+
+
+    graph.append("text")      // text label for the x axis
+        .style("text-anchor", "middle")
+        //.text("Gene: " + genename + "-Group: " + groupName +" :# " + groupNum) // Made up data for testing
+        .text("Group: " + groupName +" :# " + groupNum)
+        .attr("transform", "translate(" + (m[3] * 1.22) + " ," + (h - h * 1.15) + ")");
+
+
+    addToAry( idname );
+
+
+    }// End of function Create_G
+
+
+
+}); // End of D3 Read
+
+
+
+
+d3.select('#slider1').call(d3.slider().on("slide", function(evt, value) { d3.select('#slider1text').text(value); }));
+
+</script>
+
+
+
+<div id="summary">
+    <h1>Summary</h1>
+    <p id="sum_gene">Gene: N/A</p>
+    <p id="sum_group">Group: N/A</p>
+    <p id="sum_graph_num">Graph Number: N/A</p>
+    <p id="sum_desc_1">Description 1 Section...</p>
+    <p id="sum_desc_2">Description 2 Section...</p>
+    <button type="button" onclick="horzShape()" class="btn btn-primary" data-toggle="tooltip" title="Hooray!">Horizontal</button>
+    <button type="button" onclick="vertShape()" class="btn btn-primary">Vertical</button>
+    <button type="button" id="reset_button" onclick="resetShapes()" class="btn btn-primary disabled">Reset</button>
+    <br><br>
+    <button type="button" id="show_data" onclick="displayLines()" class="btn btn-primary">Display Lines</button>
+
+    <!--button type="button" class="btn btn-primary">Primary Button</button>
+    <button type="button" class="btn btn-primary active">Active Primary</button>
+    <button type="button" class="btn btn-primary disabled">Disabled Primary</button-->
+
+
+
+</div>
+
+
+<div>
+
+    <script>
+        /*
+         var dataset = [],
+         tmpDataset = [],
+         i, j;
+
+         for (i = 0; i < 5; i++) {
+         for (j = 0, tmpDataset = []; j < 2; j++) {
+         tmpDataset.push("Row:"+i+",Col:"+j);
+         }
+         dataset.push(tmpDataset);
+         }
+
+         d3.select("body")
+         .append("table")
+         .style("border-collapse", "collapse")
+         .style("border", "2px black solid")
+
+         .selectAll("tr")
+         .data(dataset)
+         .enter().append("tr")
+
+         .selectAll("td")
+         .data(function(d){return d;})
+         .enter().append("svg")
+
+         .style("border", "1px black solid")
+         .style("padding", "10px")
+         .on("mouseover", function(){d3.select(this).style("background-color", "aliceblue")})
+         .on("mouseout", function(){d3.select(this).style("background-color", "blue")})
+         .text(function(d){return d;})
+         .style("font-size", "12px");
+         */
+    </script>
+
+</div>
+
+<!--
+<div class="container">
+
+    <div class="row row-offcanvas row-offcanvas-right">
+
+        <div class="col-xs-12 col-sm-9">
+            <p class="pull-right visible-xs">
+                <button type="button" class="btn btn-primary btn-xs" data-toggle="offcanvas">Toggle nav</button>
+            </p>
+            <div class="jumbotron">
+                <h1>F.A.C.T. Data Analysis</h1>
+                <p>This is an example viewport sizes to see it in action.</p>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-4" id="area1">
+                    <svg id="test">	</svg>
+                    <script src="scripts/fact/sim_line.js"></script>
+                    <h2>Line Chart 1</h2>
+                    <p>This is the first  line chart.</p>
+                    <!--<p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+                </div><!--/.col-xs-6.col-lg-4
+                <div class="col-xs-4">
+                    <h2>Line Chart 2</h2>
+                    <svg id="test"></svg>
+                    <script src="scripts/fact/sim_line.js"></script>
+                    <p>This is the second line chart. </p>
+                    <!--<p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+                </div><!--/.col-xs-6.col-lg-4 -->
+<!--
+<div class="col-xs-6 col-lg-4">
+    <h2>Heading</h2>
+    <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+    <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+</div><!--/.col-xs-6.col-lg-4
+<div class="col-xs-6 col-lg-4">
+    <h2>Heading</h2>
+    <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+    <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+</div><!--/.col-xs-6.col-lg-4
+<div class="col-xs-6 col-lg-4">
+    <h2>Heading</h2>
+    <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+    <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+</div><!--/.col-xs-6.col-lg-4
+<div class="col-xs-6 col-lg-4">
+    <h2>Heading</h2>
+    <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+    <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+</div><!--/.col-xs-6.col-lg-4
+</div><!--/row
+</div><!--/.col-xs-12.col-sm-9-->
+
+<!--<div class="col-xs-6 col-sm-3 sidebar-offcanvas" id="sidebar">
+    <div class="list-group">
+        <a href="#" class="list-group-item active">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+        <a href="#" class="list-group-item">Link</a>
+    </div>
+</div><!--/.sidebar-offcanvas
+</div><!--/row
+
+<hr>
+
+<footer>
+<p>&copy; 2015 Company, Inc.</p>
+</footer>
+
+</div><!--/.container
+
+
+
+<!--script src="scripts/fact/line.js"></script>
+
+
+
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="scripts/jquery.min.js"></script>
+<script src="scripts/bootstrap.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="scripts/ie10-viewport-bug-workaround.js"></script>
+<script src="scripts/fact/offcanvas.js"></script>
+</body>
+</html>

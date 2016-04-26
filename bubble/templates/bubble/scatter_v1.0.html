@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<head>
+
+<style>
+body {
+  font: 10px sans-serif;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.point {
+  fill: steelblue;
+  stroke: #000;
+}
+#area1 {
+  height: 400px;
+  margin: 12px 5px;
+  float: left;
+  width: 460px;
+  padding: 50px;
+ }
+#area2 {
+  height: 300px;
+  margin: 12px 50px;
+  float: right;
+  width: 260px;
+  padding: 10px;
+ }
+
+
+</style>
+
+{% load staticfiles %}
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+
+</head>
+
+<body>
+
+{% load staticfiles %}
+<script src="{% static 'bubble/d3.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery-1.6.2.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.min.js' %}"></script>
+<script src="{% static 'bubble/js/jquery.js' %}"></script>
+<script src="{% static 'bubble/js/bootstrap-switch.js' %}"></script>
+<link href="{% static 'bubble/css/bootstrap.min.css' %}" rel="stylesheet"/>
+<link href="{% static 'bubble/css/bootstrap-switch.css' %}" rel="stylesheet"/>
+
+
+<div id="area1">
+
+</div>
+
+<script>
+
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.linear().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+
+var svg = d3.select("body").select("#area1").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("{% static 'bubble/data_2.csv' %}", function(error, data) {
+  if (error) throw error;
+
+  // Coerce the strings to numbers.
+  data.forEach(function(d) {
+    d.x = +d.x;
+    d.y = +d.y;
+  });
+
+  // Compute the scales’ domains.
+  x.domain(d3.extent(data, function(d) { return d.x; })).nice();
+  y.domain(d3.extent(data, function(d) { return d.y; })).nice();
+
+  // Add the x-axis.
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.svg.axis().scale(x).orient("bottom"));
+
+  // Add the y-axis.
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left"));
+
+  svg.selectAll("svg")
+     .data(data).enter()
+     .append("circle")
+     .attr("r", 10)
+     //.attr("fill", "blue")
+     .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; })
+     .attr("id", function(d) { return d.gen;})
+     .attr("grp_name", function(d) { return d.grp;});
+
+  d3.selectAll("[grp_name=a]").attr("fill","green").attr("opacity","1");
+  d3.selectAll("[grp_name=b]").attr("fill","red").attr("opacity","1");
+
+
+  $('#MaleBox').click(function () {
+    if ($(this).is(':checked')){
+
+      d3.selectAll('#f').each( function(d, i){
+        //console.log( $(this).attr("opacity"));
+        if ($(this).attr("opacity") == 1){
+          $(this).attr("opacity",".1");
+        }
+      }); // End of D3 Select Function
+    }
+    else {
+      if ($('#Checkbox1').is(':checked')){
+        d3.selectAll('#f').each( function(d, i){
+          if ($(this).attr("grp_name") == "a"){
+            $(this).attr("opacity","1"); }
+        }); // End of D3 Select Function
+      }
+      if ($('#Checkbox2').is(':checked')){
+              d3.selectAll('#f').each( function(d, i){
+          if ($(this).attr("grp_name") == "b"){
+            $(this).attr("opacity","1"); }
+        }); // End of D3 Select Function
+      }
+    }
+
+  }); // End of MaleBox.click(function)
+
+  $('#FemaleBox').click(function () {
+
+      if ($(this).is(':checked')){
+
+      d3.selectAll('#m').each( function(d, i){
+        //console.log( $(this).attr("opacity"));
+        if ($(this).attr("opacity") == 1){
+          $(this).attr("opacity",".1");
+        }
+      }); // End of D3 Select Function
+    }
+    else {
+      if ($('#Checkbox1').is(':checked')){
+        d3.selectAll('#m').each( function(d, i){
+          if ($(this).attr("grp_name") == "a"){
+            $(this).attr("opacity","1"); }
+        }); // End of D3 Select Function
+      }
+      if ($('#Checkbox2').is(':checked')){
+              d3.selectAll('#m').each( function(d, i){
+          if ($(this).attr("grp_name") == "b"){
+            $(this).attr("opacity","1"); }
+        }); // End of D3 Select Function
+      }
+    }
+  });
+
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  if ($('#Checkbox1').bootstrapSwitch('state')) { d3.selectAll("[grp_name=a]").attr("opacity","1"); }
+  else { d3.selectAll("[grp_name=a]").attr("opacity",".1"); }
+  //console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  })
+
+$('#Checkbox2').on('switchChange.bootstrapSwitch', function () {
+  if ($('#Checkbox2').bootstrapSwitch('state')) { d3.selectAll("[grp_name=b]").attr("opacity","1"); }
+  else { d3.selectAll("[grp_name=b]").attr("opacity",".1"); }
+  //console.log($('#Checkbox2').bootstrapSwitch('state')); // true || false
+  })
+
+
+}); // End of D3 reading CSV data
+</script>
+
+
+
+
+<div class="container" id="area2">
+  <form role="form">
+    <div class="checkbox">
+      <label><input type="checkbox" id="Checkbox1" checked="checked" data-size="mini"> Group 1</label><br>
+      <label><input type="checkbox" id="Checkbox2" checked="checked" data-size="mini"> Group 2</label><br>
+    </div>
+    <div class="checkbox">
+      <label><input type="checkbox" id="MaleBox" checked data-size="mini"> Male</label><br>
+      <label><input type="checkbox" id="FemaleBox" checked data-size="mini"> Female</label>
+
+    </div>
+  </form>
+</div>
+
+<script>
+$("[name='my-checkbox']").bootstrapSwitch();
+$("[id='FemaleBox']").bootstrapSwitch();
+$("[id='MaleBox']").bootstrapSwitch();
+$("[id='Checkbox1']").bootstrapSwitch();
+$("[id='Checkbox2']").bootstrapSwitch();
+</script>
+
+
+</body>
+
+</html>
+
+
+<!--
+
+CODE EXAMPLE of checking toggle switch TRUE/FALSE state and doing something
+
+$('#Checkbox1').on('switchChange.bootstrapSwitch', function () {
+  console.log($('#Checkbox1').bootstrapSwitch('state')); // true || false
+  if ($('#Checkbox1').bootstrapSwitch('state'))
+          console.log("to me its: TRUE");
+  if ( $('#Checkbox1').bootstrapSwitch('state') === false )
+          console.log("but to me its: FALSE");
+});
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+CODE EXAMPLE of outputting the true/false state of a toggle switch to the console.log()
+
+console.log($('#Checkbox1').bootstrapSwitch('state')); // Displays the state of the toggle switch, either: true || false
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
